@@ -1,9 +1,18 @@
 import React, { Component } from 'react';
-import './App.css';
+import classes from './App.module.css';
 
-import Person from './Person/Person';
+import Persons from '../components/Persons/Persons';
+import Cockpit from '../components/Cockpit/Cockpit';
+import Auxiliary from '../hoc/Auxiliary';
+import withClass from '../hoc/withClass';
+import AuthContext from '../context/auth-context';
 
 class App extends Component {
+
+  constructor(props) {
+    super(props);
+    console.log('[App js] inside constructor');
+  }
 
   state = {
     persons: [
@@ -12,9 +21,29 @@ class App extends Component {
       { id: 'abc789', name: 'Stephanie', age: 26 }
     ],
     otherState: 'some other value',
-    showPersons: false
+    showPersons: false,
+    showCockpit: true,
+    changedCounter: 0,
+    authenticated: false
   };
 
+  static getDerivedStateFromProps(props, state) {
+    console.log('[App js] inside getDerivedStateFromProps', props);
+    return state;
+  };
+
+  componentDidMount() {
+    console.log('[App js] inside componentDidMount');
+  };
+
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log('[App js] inside shouldComponentUpdate');
+    return true;
+  }
+
+  componentDidUpdate(){
+    console.log('[App js] inside componentDidUpdate');
+  }
 
   nameChangedHandler = (e, id) => {
     const personIndex = this.state.persons.findIndex(p => {
@@ -27,7 +56,12 @@ class App extends Component {
     const persons = [...this.state.persons];
     persons[personIndex] = person;
 
-    this.setState({persons: persons });
+    this.setState((prevState, props) => {
+      return {
+        persons: persons, 
+        changedCounter: prevState.changedCounter + 1 
+      }
+    });
   };
 
   togglePersonHandler = () => {
@@ -42,52 +76,49 @@ class App extends Component {
     this.setState({ persons: persons });
   };
 
+  loginHandler = () => {
+    this.setState({ authenticated: true })
+  }
+
   render() {
-    const buttonStyled = {
-      backgroundColor: 'green',
-      color: 'white',
-      font: 'inherit',
-      border: '1px solid #222',
-      padding: '16px',
-      cursor: 'pointer'
-    };
+
+    console.log('[App js] inside render');
 
     let persons = null;
     if(this.state.showPersons) {
-      persons = (
-        <div>
-          {this.state.persons.map((person, index) => {
-            return <Person 
-                key={person.id}
-                name={person.name}
-                age={person.age}
-                changed={(event) => this.nameChangedHandler(event, person.id)}
-                clicked={() => this.deletePersonHandler(index)}
-            />
-          })}
-        </div> 
-      );
+      persons = <Persons 
+        persons={this.state.persons}
+        deleted={this.deletePersonHandler}
+        clicked={this.nameChangedHandler}
+        isAuthenticated={this.state.authenticated} />
     }
 
     return (
-      <div className="App">
-        <h1>Hi I am react app</h1>
-        <p>This is amazing!</p>
-
+      <Auxiliary>    
         <button 
-          style={buttonStyled}
-          onClick={this.togglePersonHandler}> Toggle Person </button>
-        
-          {persons}
-      
-      </div>
+          onClick={() => { this.setState({ showCockpit:  false })}}>
+            Remove Cockpit
+        </button>
+        <AuthContext.Provider value={{
+            authenticated: this.state.authenticated, 
+            login: this.loginHandler 
+            }}>
+            
+            {this.state.showCockpit ? <Cockpit 
+                  title={this.props.appTitle}
+                  personsLength={this.state.persons.length}
+                  toggled={this.togglePersonHandler}
+                  showPersons={this.state.showPersons} /> : null }
+              {persons}
+          </AuthContext.Provider>
+      </Auxiliary>
     );
     // return React.createElement('div', {className: 'App'}, React.createElement('h1', null, 'does this work now!'));
   }
 }
 
 // will go into index
-export default App;
+export default withClass(App, classes.App);
 
 
 /*
